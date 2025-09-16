@@ -1,0 +1,157 @@
+pipeline:
+  name: advanced-linux-logs-only
+  identifier: advanced_linux_logs_only
+  projectIdentifier: webserverdeployadvlinux
+  orgIdentifier: default
+  tags: {}
+  stages:
+    - stage:
+        name: Advanced Linux Ops
+        identifier: advanced_linux_ops
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  type: ShellScript
+                  name: System Update
+                  identifier: system_update
+                  spec:
+                    shell: Bash
+                    onDelegate: true
+                    source:
+                      type: Inline
+                      spec:
+                        script: |
+                          echo "===== Updating Linux System ====="
+                          sudo apt-get update -y
+                          sudo apt-get upgrade -y
+                          echo "System update complete!"
+              - step:
+                  type: ShellScript
+                  name: User and Permissions
+                  identifier: user_setup
+                  spec:
+                    shell: Bash
+                    onDelegate: true
+                    source:
+                      type: Inline
+                      spec:
+                        script: |
+                          echo "===== Creating Application User ====="
+                          sudo useradd -m appuser || true
+                          echo "appuser ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/appuser
+                          echo "User setup done!"
+              - step:
+                  type: ShellScript
+                  name: Service Check
+                  identifier: service_check
+                  spec:
+                    shell: Bash
+                    onDelegate: true
+                    source:
+                      type: Inline
+                      spec:
+                        script: |
+                          echo "===== Checking Services ====="
+                          systemctl status docker || echo "Docker not running/installed"
+                          systemctl status nginx || echo "Nginx not running/installed"
+                          echo "Service check complete!"
+              - step:
+                  type: ShellScript
+                  name: Config File Creation
+                  identifier: config_file
+                  spec:
+                    shell: Bash
+                    onDelegate: true
+                    source:
+                      type: Inline
+                      spec:
+                        script: |
+                          echo "===== Simulating Config File ====="
+                          cat <<EOF > /tmp/myapp.conf
+                          [app]
+                          name=myApp
+                          env=staging
+                          version=1.0.0
+                          EOF
+                          echo "Config file created at /tmp/myapp.conf"
+              - step:
+                  type: ShellScript
+                  name: Deployment Dry Run
+                  identifier: deployment_dryrun
+                  spec:
+                    shell: Bash
+                    onDelegate: true
+                    source:
+                      type: Inline
+                      spec:
+                        script: |
+                          echo "===== Simulating Deployment ====="
+                          echo "Pulling artifact myapp-v1.2.3.tar.gz"
+                          sleep 2
+                          echo "Extracting files..."
+                          sleep 2
+                          echo "Starting application (dry run)..."
+                          sleep 2
+                          echo "Deployment simulation complete!"
+    - stage:
+        name: Linux Monitoring and Security
+        identifier: linux_monitoring_security
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  type: ShellScript
+                  name: Security Hardening
+                  identifier: security_hardening
+                  spec:
+                    shell: Bash
+                    onDelegate: true
+                    source:
+                      type: Inline
+                      spec:
+                        script: |
+                          echo "===== Security Hardening Checks ====="
+
+                          echo "--- Checking open ports ---"
+                          ss -tulnp || netstat -tulnp || echo "Port scan tool not found"
+
+                          echo "--- Checking firewall rules ---"
+                          if command -v ufw >/dev/null 2>&1; then
+                            sudo ufw status
+                          elif command -v iptables >/dev/null 2>&1; then
+                            sudo iptables -L
+                          else
+                            echo "No firewall tool found"
+                          fi
+
+                          echo "--- Checking password policy ---"
+                          grep PASS_MAX_DAYS /etc/login.defs || echo "Password policy not found"
+
+                          echo "Security hardening check complete!"
+              - step:
+                  type: ShellScript
+                  name: System Monitoring
+                  identifier: system_monitoring
+                  spec:
+                    shell: Bash
+                    onDelegate: true
+                    source:
+                      type: Inline
+                      spec:
+                        script: |
+                          echo "===== System Monitoring ====="
+
+                          echo "--- CPU and Load ---"
+                          uptime
+                          top -b -n 1 | head -n 5
+
+                          echo "--- Memory Usage ---"
+                          free -h
+
+                          echo "--- Disk Usage ---"
+                          df -h
+
+                          echo "System monitoring complete!"
